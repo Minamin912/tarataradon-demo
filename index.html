@@ -537,9 +537,11 @@ function renderPalette(){
 /* ---- endless mode ---- */
 let wallet=0,score=0,depth=0,riseCount=0,combo=0,gameOverFlag=false,highScore=(ls('tarataradon.endlessHi','0'))|0;
 // エンドレス調整値（バランスはここを変えるだけ）
-const E_COST=100, E_REWARD=30, E_RISE=4;
+const E_COST=100, E_REWARD=30;
 function comboMult(n){return Math.min(1+0.5*(Math.max(1,n)-1),4);}  // 連続消し倍率: 1,1.5,2,…上限4
 function endlessColors(){return depth>=11?['R','G','B','Y']:['R','G','B'];}  // Yは11段目以降
+function riseInterval(){if(depth>=30)return 1;if(depth>=20)return 2;if(depth>=10)return 3;return 4;}  // 終盤ほど競り上がりが速い
+function blackChance(d){return d>=30?0.22:(d>=20?0.12:0);}  // 終盤は黒も増える
 function saveHS(){try{localStorage.setItem('tarataradon.endlessHi',JSON.stringify(highScore));}catch(e){}}
 function updHUD(){if(current&&current.endless)updEndlessHUD();else updMoves();}
 function renderCombo(pop){
@@ -568,12 +570,12 @@ function startEndless(){
   document.getElementById('lvHint').style.display='none';
   document.getElementById('endPopup').style.display='none';
   buildChrome();renderBlocksInstant();pickSel();renderPalette();updEndlessHUD();
-  hideClear();status('色を選んで列に投げよう。1投 −'+E_COST+'pt、続けて消すほどコンボ倍率UP🔥');show('play');
+  hideClear();status('色を選んで列に投げよう。1投 −'+E_COST+'pt、続けて消すほどコンボ倍率UP🔥 終盤は競り上がりが加速。');show('play');
 }
 function risePalette(d){
   if(d<=10)return function(){return ['R','G','B'][Math.floor(Math.random()*3)];};
   if(d<=19)return function(){return ['R','G','B','Y'][Math.floor(Math.random()*4)];};
-  return function(){return Math.random()<0.12?'K':['R','G','B','Y'][Math.floor(Math.random()*4)];};
+  return function(){return Math.random()<blackChance(d)?'K':['R','G','B','Y'][Math.floor(Math.random()*4)];};
 }
 function riseRow(){
   depth++;
@@ -590,7 +592,7 @@ function endlessResolve(gained,emptiedCol){
   if(gained>0){wallet+=gained;score+=gained;if(score>highScore){highScore=score;saveHS();}}
   riseCount++;
   let over=false;
-  if(riseCount>=E_RISE||emptiedCol){riseCount=0;over=riseRow();}
+  if(riseCount>=riseInterval()||emptiedCol){riseCount=0;over=riseRow();}
   updEndlessHUD();renderPalette();
   if(over)return;
   if(wallet<E_COST)gameOverEndless('ポイント切れ');

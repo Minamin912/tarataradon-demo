@@ -1,0 +1,10 @@
+{
+  "name": "tarataradon",
+  "version": "0.1.0",
+  "private": true,
+  "description": "落ちものパズル（薬で同色消し＋黒化掃き出し）。エンジン・ソルバー・プロト。",
+  "scripts": {
+    "test": "node test.js",
+    "solve": "node solve.js"
+  }
+}

@@ -96,6 +96,10 @@ button:active{transform:scale(.95)}
 .blk.gone{opacity:0;transform:scale(.12)}
 @keyframes blkpulse{0%{transform:scale(1)}45%{transform:scale(1.2)}100%{transform:scale(1)}}
 .blk.pulse{animation:blkpulse .3s ease}
+.blk.bomb-src{animation:bombsrc .42s ease infinite;filter:brightness(1.65) saturate(1.6) drop-shadow(0 0 10px rgba(255,216,67,.95))}
+.blk.bomb-dst{animation:bombdst .58s ease;filter:brightness(1.75) saturate(1.55) drop-shadow(0 0 12px rgba(95,232,255,.95))}
+@keyframes bombsrc{0%,100%{transform:scale(1)}50%{transform:scale(1.16) rotate(-3deg)}}
+@keyframes bombdst{0%{transform:scale(.65) rotate(-8deg)}55%{transform:scale(1.28) rotate(4deg)}100%{transform:scale(1)}}
 .drop{position:absolute;width:24px;height:24px;border-radius:50%;pointer-events:none;z-index:3;opacity:.95;box-shadow:0 0 0 3px rgba(255,255,255,.6) inset;
   transition:top .24s cubic-bezier(.5,0,.8,1), opacity .22s ease}
 .particle{position:absolute;width:10px;height:10px;border-radius:50%;pointer-events:none;z-index:4;
@@ -650,16 +654,34 @@ function useBomb(){
   const plan=bombPlan();
   if(!plan){status('ボム対象がありません。2色以上ある時に使えます。');return;}
   bombs--;
-  let changed=0;
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===plan.source){
-    grid[r][c]=plan.target;changed++;
+  anim=true;renderBomb();
+  const src=[], dst=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     const id=idGrid&&idGrid[r]?idGrid[r][c]:null;
-    if(id!=null&&els[id]){setLook(els[id],plan.target);els[id].classList.add('pulse');setTimeout((function(e){return function(){e.classList.remove('pulse');};})(els[id]),360);}
-    burst(r,c,COLORS[plan.target]);
+    if(id==null||!els[id])continue;
+    if(grid[r][c]===plan.source)src.push({r:r,c:c,id:id});
+    else if(grid[r][c]===plan.target)dst.push({r:r,c:c,id:id});
   }
-  renderBomb();
-  flashHype('色変換!!','super',3);hypeImpact(3);sfxBomb();
-  status('💣 ボム！ 最少の'+NAMES[plan.source]+' '+changed+'個を、最多の'+NAMES[plan.target]+'に変換。');
+  src.forEach(function(p){els[p.id].classList.add('bomb-src');});
+  dst.forEach(function(p){els[p.id].classList.add('bomb-dst');});
+  flashHype(NAMES[plan.source]+'→'+NAMES[plan.target],'super',3);hypeImpact(3);sfxBomb();
+  status('💣 ボム準備！ 最少の'+NAMES[plan.source]+'を、最多の'+NAMES[plan.target]+'へ変換します…');
+  setTimeout(function(){
+    let changed=0;
+    src.forEach(function(p){
+      if(grid[p.r][p.c]!==plan.source)return;
+      grid[p.r][p.c]=plan.target;changed++;
+      const el=els[p.id];if(!el)return;
+      el.classList.remove('bomb-src');setLook(el,plan.target);el.classList.add('bomb-dst');
+      burst(p.r,p.c,COLORS[plan.target]);
+    });
+    flashHype('色変換!!','allclear',3);sfxBomb();
+    status('💣 ボム発動！ '+NAMES[plan.source]+' '+changed+'個を '+NAMES[plan.target]+' に変換。次の大消去を狙えます。');
+    setTimeout(function(){
+      src.concat(dst).forEach(function(p){if(els[p.id])els[p.id].classList.remove('bomb-src','bomb-dst');});
+      anim=false;renderBomb();updateDanger(false);
+    },520);
+  },520);
 }
 function saveHS(){try{localStorage.setItem('tarataradon.endlessHi',JSON.stringify(highScore));}catch(e){}}
 function updHUD(){if(current&&current.endless)updEndlessHUD();else updMoves();}

@@ -122,6 +122,10 @@ button:active{transform:scale(.95)}
 .potion .pcount{font-size:11px;font-weight:800;color:var(--muted)}
 .actions{display:flex;gap:8px;justify-content:center;margin-bottom:8px}
 .actions button{font-size:13px;padding:9px 13px}
+.bomb-btn{background:linear-gradient(180deg,#fff7c7,#ffd65a);color:#7b4b00;box-shadow:0 6px 14px rgba(235,166,35,.28)}
+.bomb-btn.ready{animation:bombready 1.1s infinite}
+.bomb-btn:disabled{opacity:.42;cursor:not-allowed;filter:grayscale(.4);animation:none}
+@keyframes bombready{0%,100%{box-shadow:0 0 0 0 rgba(255,205,58,.65),0 6px 14px rgba(235,166,35,.28)}50%{box-shadow:0 0 0 10px rgba(255,205,58,0),0 6px 14px rgba(235,166,35,.28)}}
 #clearbar{display:none;align-items:center;justify-content:center;gap:10px;margin:8px 0;padding:12px;border-radius:16px;
   background:linear-gradient(180deg,#fff,#fff0f5);box-shadow:var(--shadow);flex-wrap:wrap}
 .clear-msg{color:var(--success);font-weight:800;font-size:17px}
@@ -199,6 +203,7 @@ button:active{transform:scale(.95)}
       <button id="undo">↶ 戻す</button>
       <button id="reset">⟳ リセット</button>
       <button id="solve">★ ソルバー</button>
+      <button id="bomb" class="bomb-btn" style="display:none">💣 ボム 0</button>
       <button id="mute">♪ ON</button>
     </div>
     <div id="status"></div>
@@ -328,6 +333,7 @@ function sfxJackpot(streak){
   tone(104,0.32,'sawtooth',0.04+boost*.015,0.02);
 }
 function sfxDanger(){tone(96,0.18,'sawtooth',0.12);tone(72,0.22,'sawtooth',0.1,0.18);}
+function sfxBomb(){tone(180,0.16,'sawtooth',0.14);tone(520,0.18,'triangle',0.16,0.08);tone(920,0.22,'sine',0.12,0.18);}
 function updMute(){document.getElementById('mute').textContent=muted?'♪ OFF':'♪ ON';}
 
 /* ---- particles ---- */
@@ -435,6 +441,7 @@ function startSandbox(){
 }
 function enterPlay(msg){
   document.getElementById('undo').style.display='';document.getElementById('solve').style.display='';
+  document.getElementById('bomb').style.display='none';
   document.getElementById('reset').textContent='⟳ リセット';
   const _cb=document.getElementById('combo');if(_cb)_cb.style.display='none';
   document.querySelector('#play .legend-d').style.display='';
@@ -579,7 +586,7 @@ function renderPalette(){
   }
 }
 /* ---- endless mode ---- */
-let wallet=0,score=0,depth=0,riseCount=0,combo=0,bigStreak=0,gameOverFlag=false,dangerActive=false,highScore=(ls('tarataradon.endlessHi','0'))|0;
+let wallet=0,score=0,depth=0,riseCount=0,combo=0,bigStreak=0,bombs=0,gameOverFlag=false,dangerActive=false,highScore=(ls('tarataradon.endlessHi','0'))|0;
 // エンドレス調整値（バランスはここを変えるだけ）
 const E_COST=100, E_REWARD=30;
 function comboMult(n){return Math.min(1+0.5*(Math.max(1,n)-1),4);}  // 連続消し倍率: 1,1.5,2,…上限4
@@ -610,6 +617,50 @@ function hypeText(hype,streak){
   if(streak>=2)return streak+'連続 '+hype.text;
   return hype.text;
 }
+function renderBomb(){
+  const b=document.getElementById('bomb');if(!b)return;
+  const endless=current&&current.endless;
+  b.style.display=endless?'':'none';
+  b.disabled=!endless||bombs<=0||playing||anim||gameOverFlag;
+  b.classList.toggle('ready',endless&&bombs>0&&!b.disabled);
+  b.textContent=bombs>0?'💣 ボム '+bombs:'💣 ボム 0';
+}
+function colorCounts(){
+  const out={R:0,G:0,B:0,Y:0};
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const v=grid[r][c];if(out[v]!=null)out[v]++;}
+  return out;
+}
+function bombPlan(){
+  const cnt=colorCounts(), keys=['R','G','B','Y'];
+  const present=keys.filter(function(k){return cnt[k]>0;});
+  if(present.length<2)return null;
+  const target=present.slice().sort(function(a,b){return (cnt[b]-cnt[a])||keys.indexOf(a)-keys.indexOf(b);})[0];
+  const source=present.filter(function(k){return k!==target;}).sort(function(a,b){return (cnt[a]-cnt[b])||keys.indexOf(a)-keys.indexOf(b);})[0];
+  if(!source||!target)return null;
+  return { source:source, target:target, count:cnt[source], targetCount:cnt[target] };
+}
+function awardBomb(){
+  bombs++;
+  renderBomb();
+  flashHype('ボム解放!!','jackpot',3);hypeImpact(3);sfxUnlock();
+}
+function useBomb(){
+  if(!(current&&current.endless)||playing||anim||gameOverFlag)return;
+  if(bombs<=0){status('ボムはまだありません。BIG系を3連続で解放！');return;}
+  const plan=bombPlan();
+  if(!plan){status('ボム対象がありません。2色以上ある時に使えます。');return;}
+  bombs--;
+  let changed=0;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]===plan.source){
+    grid[r][c]=plan.target;changed++;
+    const id=idGrid&&idGrid[r]?idGrid[r][c]:null;
+    if(id!=null&&els[id]){setLook(els[id],plan.target);els[id].classList.add('pulse');setTimeout((function(e){return function(){e.classList.remove('pulse');};})(els[id]),360);}
+    burst(r,c,COLORS[plan.target]);
+  }
+  renderBomb();
+  flashHype('色変換!!','super',3);hypeImpact(3);sfxBomb();
+  status('💣 ボム！ 最少の'+NAMES[plan.source]+' '+changed+'個を、最多の'+NAMES[plan.target]+'に変換。');
+}
 function saveHS(){try{localStorage.setItem('tarataradon.endlessHi',JSON.stringify(highScore));}catch(e){}}
 function updHUD(){if(current&&current.endless)updEndlessHUD();else updMoves();}
 function renderCombo(pop){
@@ -627,17 +678,18 @@ function updEndlessHUD(){
 }
 function startEndless(){
   current={endless:true};curCat=null;curIdx=-1;guide=null;
-  wallet=500;score=0;depth=0;riseCount=0;combo=0;bigStreak=0;gameOverFlag=false;dangerActive=false;
+  wallet=500;score=0;depth=0;riseCount=0;combo=0;bigStreak=0;bombs=0;gameOverFlag=false;dangerActive=false;
   inv={R:0,G:0,B:0,Y:0};sel=null;playing=false;anim=false;animToken++;undoStack=[];used=0;
   grid=Array.from({length:ROWS},function(){return new Array(COLS).fill(null);});
   for(let r=ROWS-1;r>=ROWS-3;r--)for(let c=0;c<COLS;c++)grid[r][c]=['R','G','B'][Math.floor(Math.random()*3)];
   document.getElementById('undo').style.display='none';
   document.getElementById('solve').style.display='none';
+  document.getElementById('bomb').style.display='';
   document.getElementById('reset').textContent='⟳ 最初から';
   document.querySelector('#play .legend-d').style.display='none';
   document.getElementById('lvHint').style.display='none';
   document.getElementById('endPopup').style.display='none';
-  buildChrome();renderBlocksInstant();pickSel();renderPalette();updEndlessHUD();
+  buildChrome();renderBlocksInstant();pickSel();renderPalette();updEndlessHUD();renderBomb();
   updateDanger(false);
   hideClear();status('色を選んで列に投げよう。1投 −'+E_COST+'pt、続けて消すほどコンボ倍率UP🔥 終盤は競り上がりが加速。');show('play');
 }
@@ -662,18 +714,18 @@ function endlessResolve(gained,emptiedCol){
   riseCount++;
   let over=false;
   if(riseCount>=riseInterval()||emptiedCol){riseCount=0;over=riseRow();}
-  updEndlessHUD();renderPalette();
+  updEndlessHUD();renderPalette();renderBomb();
   if(over)return;
   updateDanger(true);
   if(wallet<E_COST)gameOverEndless('ポイント切れ');
 }
 function gameOverEndless(reason){
-  if(gameOverFlag)return;gameOverFlag=true;anim=false;combo=0;bigStreak=0;dangerActive=false;document.getElementById('board').classList.remove('danger','hype-pop','hype-hot','hype-max');renderCombo(false);
+  if(gameOverFlag)return;gameOverFlag=true;anim=false;combo=0;bigStreak=0;dangerActive=false;document.getElementById('board').classList.remove('danger','hype-pop','hype-hot','hype-max');renderCombo(false);renderBomb();
   if(score>highScore){highScore=score;saveHS();}
   document.getElementById('endStat').innerHTML='スコア <b>'+score+'</b> ／ '+depth+'段 到達<br>最高スコア '+highScore+'<br><span style="color:var(--hint)">'+reason+'</span>';
   document.getElementById('endPopup').style.display='flex';
 }
-function backToTitle(){playing=false;anim=false;animToken++;guide=null;current=null;bigStreak=0;dangerActive=false;document.getElementById('board').classList.remove('danger','hype-pop','hype-hot','hype-max');show('title');}
+function backToTitle(){playing=false;anim=false;animToken++;guide=null;current=null;bigStreak=0;bombs=0;dangerActive=false;document.getElementById('board').classList.remove('danger','hype-pop','hype-hot','hype-max');renderBomb();show('title');}
 
 function throwAt(c){
   if(anim&&!playing||gameOverFlag)return;
@@ -684,7 +736,7 @@ function throwAt(c){
   else if(inv[sel]<=0){status('使える薬を選んでね。');return;}
   const res=E.applyThrow(grid,c,sel);
   if(res.outcome==='invalid'||res.outcome==='fizzle'){dropFx(res.landed,sel);sfxDrop();
-    if(endless){wallet-=E_COST;combo=0;bigStreak=0;status('から投げ…つながらず −'+E_COST+'pt。コンボ途切れ。');pickSel();renderPalette();updHUD();endlessResolve(0,false);}
+    if(endless){wallet-=E_COST;combo=0;bigStreak=0;status('から投げ…つながらず −'+E_COST+'pt。コンボ途切れ。');pickSel();renderPalette();updHUD();renderBomb();endlessResolve(0,false);}
     else status('薬は素通りした（着地点の隣に同じ色が無い）。');
     return;}
   if(endless)wallet-=E_COST;
@@ -697,7 +749,7 @@ function throwAt(c){
     const p=res.blackenedCell,id=idGrid[p[0]][p[1]];
     if(id!=null){setLook(els[id],'K');els[id].classList.add('pulse');setTimeout((function(e){return function(){e.classList.remove('pulse');};})(els[id]),300);}
     sfxBlack();
-    if(endless){combo=0;bigStreak=0;status('不発：'+NAMES[usedColor]+'がつながらず黒化。−'+E_COST+'pt・コンボ途切れ。');pickSel();renderPalette();updHUD();endlessResolve(0,false);}
+    if(endless){combo=0;bigStreak=0;status('不発：'+NAMES[usedColor]+'がつながらず黒化。−'+E_COST+'pt・コンボ途切れ。');pickSel();renderPalette();updHUD();renderBomb();endlessResolve(0,false);}
     else{
       status('不発：'+NAMES[usedColor]+'薬がつながらず '+NAMES[res.blackened]+'を黒化。');
       pickSel();renderPalette();
@@ -714,6 +766,7 @@ function throwAt(c){
   if(endless){
     combo++;const mult=comboMult(combo);gained=Math.round(E_REWARD*totalCleared*mult);
     if(hype)bigStreak++;else bigStreak=0;
+    if(bigStreak===3)awardBomb();
     const htxt=hypeText(hype,bigStreak);
     status(NAMES[usedColor]+'を'+res.cleared+'個消去'+(res.blacks?'＋黒'+res.blacks+'個掃き出し':'')+'！ +'+gained+'pt'+(combo>=2?'　🔥COMBO×'+mult.toFixed(1):'')+(hype?'　'+(allColorCleared?(bigStreak>=2?bigStreak+'連続 ':'')+NAMES[usedColor]+'全消し！！':htxt):''));
     renderCombo(true);
@@ -736,6 +789,7 @@ function throwAt(c){
     return;
   }
   const tk=++animToken;anim=true;
+  renderBomb();
   setTimeout(function(){
     if(tk!==animToken)return;
     splash(res.landed,COLORS[usedColor]);sfxHit(res.cleared);
@@ -750,7 +804,7 @@ function throwAt(c){
       setTimeout(function(){
         if(tk!==animToken)return;
         for(const id of rm){if(els[id]){els[id].remove();delete els[id];}}
-        anim=false;pickSel();renderPalette();
+        anim=false;pickSel();renderPalette();renderBomb();
         if(endless){endlessResolve(gained, emptiedAny(grid));}
         else{
           if(E.isEmpty(grid))onWin();
@@ -808,6 +862,7 @@ document.getElementById('titleGallery').onclick=function(){renderGallery();show(
 document.getElementById('undo').onclick=undo;
 document.getElementById('reset').onclick=function(){if(current&&current.endless)startEndless();else reset();};
 document.getElementById('solve').onclick=solveNow;
+document.getElementById('bomb').onclick=useBomb;
 document.getElementById('back').onclick=function(){if(current&&current.endless)backToTitle();else backToSelect();};
 document.getElementById('titleEndless').onclick=startEndless;
 document.getElementById('endRetry').onclick=function(){document.getElementById('endPopup').style.display='none';startEndless();};

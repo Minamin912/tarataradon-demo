@@ -82,7 +82,13 @@ button:active{transform:scale(.95)}
   box-shadow:inset 0 3px 10px rgba(196,132,156,.16)}
 #board.danger{animation:dangerpulse .7s infinite;box-shadow:inset 0 3px 10px rgba(196,132,156,.16),0 0 0 4px rgba(255,50,77,.46),0 0 28px rgba(255,50,77,.42)}
 #board.danger::after{content:"DANGER";position:absolute;left:0;right:0;top:6px;text-align:center;z-index:18;color:#fff;font-size:24px;font-weight:800;text-shadow:0 2px 8px rgba(130,0,25,.75);letter-spacing:2px;pointer-events:none;opacity:.86}
+#board.hype-pop{animation:boardpop .32s ease}
+#board.hype-hot{animation:boardshake .46s ease;box-shadow:inset 0 3px 10px rgba(196,132,156,.16),0 0 0 4px rgba(255,222,86,.55),0 0 30px rgba(255,132,61,.48)}
+#board.hype-max{animation:boardquake .62s ease;box-shadow:inset 0 3px 10px rgba(196,132,156,.16),0 0 0 5px rgba(255,255,255,.85),0 0 18px rgba(255,64,112,.75),0 0 42px rgba(255,215,64,.75)}
 @keyframes dangerpulse{0%,100%{filter:none}50%{filter:saturate(1.35) brightness(1.05)}}
+@keyframes boardpop{0%,100%{transform:none}45%{transform:scale(1.025)}}
+@keyframes boardshake{0%,100%{transform:none}20%{transform:translate(-3px,2px) scale(1.02)}40%{transform:translate(4px,-2px) scale(1.025)}65%{transform:translate(-2px,-3px) scale(1.015)}}
+@keyframes boardquake{0%,100%{transform:none}12%{transform:translate(-5px,3px) rotate(-1deg) scale(1.025)}28%{transform:translate(6px,-4px) rotate(1deg) scale(1.035)}44%{transform:translate(-4px,-5px) rotate(-.7deg) scale(1.03)}63%{transform:translate(5px,3px) rotate(.8deg) scale(1.02)}}
 .slot{position:absolute;width:50px;height:50px;border-radius:9px;background:rgba(255,255,255,.5);border:1.5px dashed #f0d6dd}
 .blk{position:absolute;width:50px;height:50px;transition:top .38s cubic-bezier(.34,1.12,.64,1), left .32s ease, opacity .3s ease, transform .3s ease, filter .2s ease}
 .blk.lit{filter:brightness(1.5) saturate(.45)}
@@ -105,6 +111,9 @@ button:active{transform:scale(.95)}
 .hype-toast.super{color:#80f6ff;text-shadow:0 3px 0 #166c9d,0 0 18px rgba(94,235,255,.92)}
 .hype-toast.jackpot,.hype-toast.allclear{color:#fff;text-shadow:0 3px 0 #d04a1d,0 0 9px #fff,0 0 28px #ffd34d}
 .hype-toast.danger{font-size:38px;color:#ff3150;text-shadow:0 3px 0 #fff,0 0 22px rgba(255,49,80,.95)}
+.hype-toast.streak2{font-size:40px;letter-spacing:1px;text-shadow:0 3px 0 #c04723,0 0 10px #fff,0 0 30px #ffda55}
+.hype-toast.streak3{font-size:46px;letter-spacing:1.5px;color:#fff;text-shadow:0 4px 0 #a3266c,0 0 12px #fff,0 0 28px #ff4aa2,0 0 42px #ffe066}
+.hype-toast.streak4{font-size:50px;letter-spacing:2px;color:#fff;text-shadow:0 4px 0 #5f31c9,0 0 10px #fff,0 0 25px #78f7ff,0 0 45px #ff58b8,0 0 60px #ffe066}
 @keyframes hypeblast{0%{opacity:0;transform:translate(-50%,-50%) scale(.55) rotate(-5deg)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.18) rotate(2deg)}72%{opacity:1;transform:translate(-50%,-58%) scale(1)}100%{opacity:0;transform:translate(-50%,-76%) scale(.9)}}
 .belt{display:flex;gap:8px;justify-content:center;background:#fff3ee;border-radius:16px;padding:9px;margin-bottom:11px}
 .potion{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 12px;border-radius:13px;background:#fff;box-shadow:var(--shadow-sm)}
@@ -311,7 +320,13 @@ function sfxHit(n){const base=470+Math.min(n,8)*38;tone(base,0.12,'triangle',0.2
 function sfxBlack(){tone(130,0.16,'sawtooth',0.16);}
 function sfxWin(){[523,659,784,1047].forEach(function(f,i){tone(f,0.18,'triangle',0.17,i*0.09);});}
 function sfxUnlock(){[784,988,1319].forEach(function(f,i){tone(f,0.22,'sine',0.16,i*0.08);});}
-function sfxJackpot(){[659,880,1175,1568].forEach(function(f,i){tone(f,0.16,'triangle',0.16,i*0.06);});tone(104,0.32,'sawtooth',0.05,0.02);}
+function sfxJackpot(streak){
+  const boost=Math.min(streak||1,4);
+  [659,880,1175,1568].forEach(function(f,i){tone(f*(1+boost*.03),0.16,'triangle',0.14+boost*.025,i*0.055);});
+  if(boost>=2)tone(1976,0.16,'sine',0.12,0.22);
+  if(boost>=3)tone(2637,0.2,'sine',0.11,0.3);
+  tone(104,0.32,'sawtooth',0.04+boost*.015,0.02);
+}
 function sfxDanger(){tone(96,0.18,'sawtooth',0.12);tone(72,0.22,'sawtooth',0.1,0.18);}
 function updMute(){document.getElementById('mute').textContent=muted?'♪ OFF':'♪ ON';}
 
@@ -423,7 +438,7 @@ function enterPlay(msg){
   document.getElementById('reset').textContent='⟳ リセット';
   const _cb=document.getElementById('combo');if(_cb)_cb.style.display='none';
   document.querySelector('#play .legend-d').style.display='';
-  used=0;undoStack=[];sel=null;playing=false;solverUsed=false;anim=false;animToken++;dangerActive=false;pickSel();snapInit();
+  used=0;undoStack=[];sel=null;playing=false;solverUsed=false;anim=false;animToken++;bigStreak=0;dangerActive=false;pickSel();snapInit();
   hideClear();buildChrome();renderBlocksInstant();renderPalette();updMoves();status('');startGuide();show('play');
 }
 function updMoves(){document.getElementById('moves').textContent=(current&&current.sandbox)?('手数 '+used):('手数 '+used+' / '+(current?current.par:'-'));}
@@ -508,11 +523,20 @@ function splash(landed,color){
     setTimeout((function(el){return function(){el.remove();};})(dd),460);
   });
 }
-function flashHype(text,kind){
+function flashHype(text,kind,streak){
   const bd=document.getElementById('board');
-  const h=document.createElement('div');h.className='hype-toast '+(kind||'big');h.textContent=text;
+  const level=Math.min(streak||1,4);
+  const h=document.createElement('div');h.className='hype-toast '+(kind||'big')+(level>=2?' streak'+level:'');h.textContent=text;
   bd.appendChild(h);
   setTimeout(function(){h.remove();},1050);
+}
+function hypeImpact(streak){
+  const bd=document.getElementById('board');
+  const cls=streak>=4?'hype-max':(streak>=2?'hype-hot':'hype-pop');
+  bd.classList.remove('hype-pop','hype-hot','hype-max');
+  void bd.offsetWidth;
+  bd.classList.add(cls);
+  setTimeout(function(){bd.classList.remove(cls);},700);
 }
 // 着弾点に隣接する消去セルを起点に、連結グループをBFS順で返す（薄くする順番）
 function chainOrder(landed,cells){
@@ -555,7 +579,7 @@ function renderPalette(){
   }
 }
 /* ---- endless mode ---- */
-let wallet=0,score=0,depth=0,riseCount=0,combo=0,gameOverFlag=false,dangerActive=false,highScore=(ls('tarataradon.endlessHi','0'))|0;
+let wallet=0,score=0,depth=0,riseCount=0,combo=0,bigStreak=0,gameOverFlag=false,dangerActive=false,highScore=(ls('tarataradon.endlessHi','0'))|0;
 // エンドレス調整値（バランスはここを変えるだけ）
 const E_COST=100, E_REWARD=30;
 function comboMult(n){return Math.min(1+0.5*(Math.max(1,n)-1),4);}  // 連続消し倍率: 1,1.5,2,…上限4
@@ -580,6 +604,12 @@ function clearHype(total,allColor){
   if(total>=5)return { text:'BIG CLEAR!', kind:'big' };
   return null;
 }
+function hypeText(hype,streak){
+  if(!hype)return '';
+  if(streak>=4)return streak+'連 '+hype.text;
+  if(streak>=2)return streak+'連続 '+hype.text;
+  return hype.text;
+}
 function saveHS(){try{localStorage.setItem('tarataradon.endlessHi',JSON.stringify(highScore));}catch(e){}}
 function updHUD(){if(current&&current.endless)updEndlessHUD();else updMoves();}
 function renderCombo(pop){
@@ -597,7 +627,7 @@ function updEndlessHUD(){
 }
 function startEndless(){
   current={endless:true};curCat=null;curIdx=-1;guide=null;
-  wallet=500;score=0;depth=0;riseCount=0;combo=0;gameOverFlag=false;dangerActive=false;
+  wallet=500;score=0;depth=0;riseCount=0;combo=0;bigStreak=0;gameOverFlag=false;dangerActive=false;
   inv={R:0,G:0,B:0,Y:0};sel=null;playing=false;anim=false;animToken++;undoStack=[];used=0;
   grid=Array.from({length:ROWS},function(){return new Array(COLS).fill(null);});
   for(let r=ROWS-1;r>=ROWS-3;r--)for(let c=0;c<COLS;c++)grid[r][c]=['R','G','B'][Math.floor(Math.random()*3)];
@@ -638,12 +668,12 @@ function endlessResolve(gained,emptiedCol){
   if(wallet<E_COST)gameOverEndless('ポイント切れ');
 }
 function gameOverEndless(reason){
-  if(gameOverFlag)return;gameOverFlag=true;anim=false;combo=0;dangerActive=false;document.getElementById('board').classList.remove('danger');renderCombo(false);
+  if(gameOverFlag)return;gameOverFlag=true;anim=false;combo=0;bigStreak=0;dangerActive=false;document.getElementById('board').classList.remove('danger','hype-pop','hype-hot','hype-max');renderCombo(false);
   if(score>highScore){highScore=score;saveHS();}
   document.getElementById('endStat').innerHTML='スコア <b>'+score+'</b> ／ '+depth+'段 到達<br>最高スコア '+highScore+'<br><span style="color:var(--hint)">'+reason+'</span>';
   document.getElementById('endPopup').style.display='flex';
 }
-function backToTitle(){playing=false;anim=false;animToken++;guide=null;current=null;dangerActive=false;document.getElementById('board').classList.remove('danger');show('title');}
+function backToTitle(){playing=false;anim=false;animToken++;guide=null;current=null;bigStreak=0;dangerActive=false;document.getElementById('board').classList.remove('danger','hype-pop','hype-hot','hype-max');show('title');}
 
 function throwAt(c){
   if(anim&&!playing||gameOverFlag)return;
@@ -654,7 +684,7 @@ function throwAt(c){
   else if(inv[sel]<=0){status('使える薬を選んでね。');return;}
   const res=E.applyThrow(grid,c,sel);
   if(res.outcome==='invalid'||res.outcome==='fizzle'){dropFx(res.landed,sel);sfxDrop();
-    if(endless){wallet-=E_COST;combo=0;status('から投げ…つながらず −'+E_COST+'pt。コンボ途切れ。');pickSel();renderPalette();updHUD();endlessResolve(0,false);}
+    if(endless){wallet-=E_COST;combo=0;bigStreak=0;status('から投げ…つながらず −'+E_COST+'pt。コンボ途切れ。');pickSel();renderPalette();updHUD();endlessResolve(0,false);}
     else status('薬は素通りした（着地点の隣に同じ色が無い）。');
     return;}
   if(endless)wallet-=E_COST;
@@ -667,7 +697,7 @@ function throwAt(c){
     const p=res.blackenedCell,id=idGrid[p[0]][p[1]];
     if(id!=null){setLook(els[id],'K');els[id].classList.add('pulse');setTimeout((function(e){return function(){e.classList.remove('pulse');};})(els[id]),300);}
     sfxBlack();
-    if(endless){combo=0;status('不発：'+NAMES[usedColor]+'がつながらず黒化。−'+E_COST+'pt・コンボ途切れ。');pickSel();renderPalette();updHUD();endlessResolve(0,false);}
+    if(endless){combo=0;bigStreak=0;status('不発：'+NAMES[usedColor]+'がつながらず黒化。−'+E_COST+'pt・コンボ途切れ。');pickSel();renderPalette();updHUD();endlessResolve(0,false);}
     else{
       status('不発：'+NAMES[usedColor]+'薬がつながらず '+NAMES[res.blackened]+'を黒化。');
       pickSel();renderPalette();
@@ -683,7 +713,9 @@ function throwAt(c){
   let gained=0;
   if(endless){
     combo++;const mult=comboMult(combo);gained=Math.round(E_REWARD*totalCleared*mult);
-    status(NAMES[usedColor]+'を'+res.cleared+'個消去'+(res.blacks?'＋黒'+res.blacks+'個掃き出し':'')+'！ +'+gained+'pt'+(combo>=2?'　🔥COMBO×'+mult.toFixed(1):'')+(hype?'　'+(allColorCleared?NAMES[usedColor]+'全消し！！':hype.text):''));
+    if(hype)bigStreak++;else bigStreak=0;
+    const htxt=hypeText(hype,bigStreak);
+    status(NAMES[usedColor]+'を'+res.cleared+'個消去'+(res.blacks?'＋黒'+res.blacks+'個掃き出し':'')+'！ +'+gained+'pt'+(combo>=2?'　🔥COMBO×'+mult.toFixed(1):'')+(hype?'　'+(allColorCleared?(bigStreak>=2?bigStreak+'連続 ':'')+NAMES[usedColor]+'全消し！！':htxt):''));
     renderCombo(true);
   }else{
     status(NAMES[usedColor]+'を'+res.cleared+'個消去'+(res.blacks?'＋黒'+res.blacks+'個を掃き出し':'')+'。（使用 '+used+'本）');
@@ -697,7 +729,7 @@ function throwAt(c){
   };
   if(playing){ // ソルバー自動再生: 簡略・ロックなし
     splash(res.landed,COLORS[usedColor]);sfxHit(res.cleared);doClear();
-    if(hype){flashHype(hype.text,hype.kind);sfxJackpot();}
+    if(hype){flashHype(hypeText(hype,bigStreak),hype.kind,bigStreak);hypeImpact(bigStreak);sfxJackpot(bigStreak);}
     setTimeout(function(){for(const id of rm){if(els[id]){els[id].remove();delete els[id];}}},320);
     pickSel();renderPalette();
     if(E.isEmpty(grid))onWin();else if(invEmpty())status('薬切れ。');
@@ -707,7 +739,7 @@ function throwAt(c){
   setTimeout(function(){
     if(tk!==animToken)return;
     splash(res.landed,COLORS[usedColor]);sfxHit(res.cleared);
-    if(hype){flashHype(hype.text,hype.kind);sfxJackpot();}
+    if(hype){flashHype(hypeText(hype,bigStreak),hype.kind,bigStreak);hypeImpact(bigStreak);sfxJackpot(bigStreak);}
     // 連結グループを種から1マスずつ薄く（lit）→全部薄くなったら一斉に消す
     const order=chainOrder(res.landed,res.clearedCells);
     const n=Math.max(1,order.length), step=Math.max(38,Math.min(80,Math.floor(440/n)));

@@ -75,7 +75,7 @@ button:active{transform:scale(.95)}
 .topinfo .meta{font-size:11.5px;color:var(--hint);font-weight:700}
 .moves-chip{font-size:12px;font-weight:800;color:var(--pinkd);background:#fff;border-radius:12px;padding:6px 11px;box-shadow:var(--shadow-sm);white-space:nowrap}
 .hint{font-size:12.5px;color:var(--muted);background:#fff6f9;border-radius:12px;padding:8px 11px;margin-bottom:10px;min-height:8px}
-.playfield{display:flex;flex-direction:column;align-items:center;margin-bottom:12px}
+.playfield{display:flex;flex-direction:column;align-items:center;margin-bottom:12px;position:relative}
 #arrows{display:grid;grid-template-columns:repeat(6,50px);gap:6px;margin-bottom:7px;padding:0 8px}
 #arrows button{height:30px;padding:0;font-size:12px;font-weight:800;color:var(--pinkd);background:#fff}
 #board{position:relative;width:346px;height:346px;background:var(--cream);border-radius:18px;overflow:hidden;
@@ -119,6 +119,65 @@ button:active{transform:scale(.95)}
 .hype-toast.streak3{font-size:46px;letter-spacing:1.5px;color:#fff;text-shadow:0 4px 0 #a3266c,0 0 12px #fff,0 0 28px #ff4aa2,0 0 42px #ffe066}
 .hype-toast.streak4{font-size:50px;letter-spacing:2px;color:#fff;text-shadow:0 4px 0 #5f31c9,0 0 10px #fff,0 0 25px #78f7ff,0 0 45px #ff58b8,0 0 60px #ffe066}
 @keyframes hypeblast{0%{opacity:0;transform:translate(-50%,-50%) scale(.55) rotate(-5deg)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.18) rotate(2deg)}72%{opacity:1;transform:translate(-50%,-58%) scale(1)}100%{opacity:0;transform:translate(-50%,-76%) scale(.9)}}
+/* HEAT ゲージ＋スコア演出 */
+#heat{display:none;width:346px;height:14px;margin:0 0 8px;border-radius:9px;background:#ffe7ef;box-shadow:inset 0 1px 4px rgba(196,132,156,.25);position:relative;overflow:hidden}
+#heat .hf{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:9px;background:linear-gradient(90deg,#ffd34d,#ff7a3d,#ff3d77);transition:width .35s cubic-bezier(.3,1,.5,1)}
+#heat .hf::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);transform:translateX(-100%);animation:heatsheen 1.6s linear infinite}
+#heat .hlabel{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:800;color:#fff;letter-spacing:1.5px;text-shadow:0 1px 2px rgba(150,40,70,.7);z-index:2;opacity:0;transition:opacity .2s;pointer-events:none}
+#heat.t1 .hf{background:linear-gradient(90deg,#ffe06b,#ffb14d)}
+#heat.t2 .hf{background:linear-gradient(90deg,#ffd34d,#ff7a3d,#ff4f8a)}
+#heat.t3 .hf{background:linear-gradient(90deg,#ff7a3d,#ff3d77,#c14bff)}
+#heat.t3{box-shadow:inset 0 1px 4px rgba(196,132,156,.25),0 0 14px rgba(255,80,140,.6)}
+#heat.full .hf{animation:heatfull .5s ease infinite alternate}
+#heat.full .hlabel{opacity:1;animation:heatlabel .6s ease infinite}
+@keyframes heatsheen{to{transform:translateX(220%)}}
+@keyframes heatfull{from{filter:brightness(1)}to{filter:brightness(1.4) saturate(1.35)}}
+@keyframes heatlabel{0%,100%{transform:translateY(-50%) scale(1)}50%{transform:translateY(-50%) scale(1.2)}}
+.score-pop{position:absolute;z-index:24;pointer-events:none;font-weight:800;font-size:24px;color:#fff;white-space:nowrap;
+  text-shadow:0 2px 0 #b96a00,0 0 10px rgba(255,221,93,.9);opacity:0;transform:translate(-50%,0) scale(.6)}
+.score-pop .mlt{font-size:.7em;color:#ffe36b}
+.score-pop.tier1{font-size:28px}
+.score-pop.tier2{font-size:34px;text-shadow:0 2px 0 #c14723,0 0 10px #fff,0 0 22px #ffda55}
+.score-pop.tier3{font-size:42px;text-shadow:0 3px 0 #a3266c,0 0 12px #fff,0 0 26px #ff4aa2,0 0 40px #ffe066}
+.score-pop.go{animation:scorefly 1s cubic-bezier(.2,1,.4,1) forwards}
+@keyframes scorefly{0%{opacity:0;transform:translate(-50%,0) scale(.5)}16%{opacity:1;transform:translate(-50%,-6px) scale(1.16)}70%{opacity:1;transform:translate(-50%,-42px) scale(1)}100%{opacity:0;transform:translate(-50%,-70px) scale(.92)}}
+.moves-chip.bump{animation:movesbump .42s cubic-bezier(.2,1.3,.5,1)}
+@keyframes movesbump{0%{transform:scale(1)}45%{transform:scale(1.3);color:#ff7a00}100%{transform:scale(1)}}
+.topbar.combo-live #moves{box-shadow:0 0 0 2px rgba(255,180,60,.85),var(--shadow-sm)}
+/* 溜め演出（大消去の予告→放出） */
+#board.charging{animation:boardcharge .26s ease-in-out infinite alternate}
+@keyframes boardcharge{from{filter:none}to{filter:brightness(1.07) saturate(1.12)}}
+.blk.charge{z-index:7;animation:blkcharge .24s ease-in-out infinite alternate}
+@keyframes blkcharge{from{filter:brightness(1);transform:scale(1)}to{filter:brightness(1.7) saturate(1.3) drop-shadow(0 0 8px rgba(255,240,150,.95));transform:scale(1.13)}}
+.board-flash{position:absolute;inset:0;z-index:19;pointer-events:none;border-radius:18px;opacity:0;
+  background:radial-gradient(circle at center,rgba(255,255,255,.95),rgba(255,255,255,0) 70%)}
+.board-flash.t2{background:radial-gradient(circle at center,rgba(255,255,255,.96),rgba(120,235,255,.4) 50%,rgba(120,235,255,0) 78%)}
+.board-flash.t3{background:radial-gradient(circle at center,rgba(255,255,255,.98),rgba(255,120,180,.45) 45%,rgba(255,120,180,0) 76%)}
+.board-flash.go{animation:boardflash .5s ease-out forwards}
+@keyframes boardflash{0%{opacity:0;transform:scale(.6)}14%{opacity:.95;transform:scale(1)}100%{opacity:0;transform:scale(1.05)}}
+/* FEVER（全画面ハイ・ブロックの色相は保持） */
+#feverBg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .6s;
+  background:linear-gradient(125deg,#ff4aa2,#ffd34d,#5ad1ff,#c14bff,#ff4aa2);background-size:300% 300%}
+#feverBg.show{opacity:.6;animation:fevergrad 3.5s linear infinite}
+@keyframes fevergrad{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+.frame.fever-on{animation:framefever 1.4s ease-in-out infinite}
+@keyframes framefever{0%,100%{box-shadow:0 0 0 4px rgba(255,215,64,.85),0 0 40px rgba(255,80,170,.7),0 18px 50px rgba(193,75,255,.45)}50%{box-shadow:0 0 0 5px rgba(120,235,255,.92),0 0 54px rgba(255,215,64,.9),0 18px 60px rgba(255,80,170,.6)}}
+.frame.fever-on #board{box-shadow:inset 0 3px 10px rgba(196,132,156,.16),0 0 0 4px rgba(255,215,64,.92),0 0 36px rgba(255,90,170,.78)}
+.frame.fever-on .blk.lit{filter:brightness(1.85) saturate(.5) drop-shadow(0 0 12px #ffe066)}
+#feverCg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;opacity:0;pointer-events:none;border-radius:18px;transition:opacity .5s}
+#feverCg.show{opacity:.32;animation:feverkb 8s ease-in-out forwards}
+@keyframes feverkb{0%{transform:scale(1.04)}100%{transform:scale(1.16)}}
+.hype-toast.fever{font-size:48px;color:#fff;text-shadow:0 3px 0 #c14bff,0 0 14px #fff,0 0 30px #ffd34d,0 0 50px #ff4aa2}
+#heat.fever .hf{background:linear-gradient(90deg,#ffd34d,#ff4aa2,#c14bff,#ffd34d);background-size:200% 100%;animation:heatfever .8s linear infinite}
+@keyframes heatfever{to{background-position:200% 0}}
+/* ゲージのメリット明示キャプション（溜め中／FEVER中に何が得かを常時表示） */
+#heatcap{display:none;width:346px;margin:-3px 0 7px;text-align:center;font-size:11px;font-weight:800;letter-spacing:.2px;color:#d76a8c;min-height:13px;line-height:13px;transition:color .2s}
+#heatcap b{color:#ff3d77}
+#heatcap.near{color:#ff2e6e;animation:hcpulse .7s ease-in-out infinite}
+#heatcap.near b{color:#ff145e}
+#heatcap.fever{color:#c14bff;animation:hcpulse .55s ease-in-out infinite}
+#heatcap.fever b{color:#ff3d77}
+@keyframes hcpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 .belt{display:flex;gap:8px;justify-content:center;background:#fff3ee;border-radius:16px;padding:9px;margin-bottom:11px}
 .potion{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 12px;border-radius:13px;background:#fff;box-shadow:var(--shadow-sm)}
 .potion.on{box-shadow:0 0 0 3px var(--pink),var(--shadow-sm);transform:translateY(-2px)}
@@ -201,6 +260,8 @@ button:active{transform:scale(.95)}
     <div class="playfield">
       <div class="belt" id="palette"></div>
       <div id="arrows"></div>
+      <div id="heat"><div class="hf"></div><div class="hlabel">FEVER ×2pt</div></div>
+      <div id="heatcap"></div>
       <div id="board"></div>
     </div>
     <div class="actions">
@@ -338,6 +399,13 @@ function sfxJackpot(streak){
 }
 function sfxDanger(){tone(96,0.18,'sawtooth',0.12);tone(72,0.22,'sawtooth',0.1,0.18);}
 function sfxBomb(){tone(180,0.16,'sawtooth',0.14);tone(520,0.18,'triangle',0.16,0.08);tone(920,0.22,'sine',0.12,0.18);}
+function sfxCharge(dur,tier){const ac=audio();if(!ac)return;const t=ac.currentTime;
+  const o=ac.createOscillator(),g=ac.createGain();o.type='sawtooth';
+  o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(150+tier*520,t+dur);
+  g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.05+tier*0.02,t+dur*0.85);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur+0.05);
+  o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+dur+0.1);}
+function sfxFever(){[523,659,784,1047,1319].forEach(function(f,i){tone(f,0.22,'triangle',0.16,i*0.06);});tone(1568,0.42,'sine',0.12,0.32);tone(98,0.5,'sawtooth',0.06,0);}
 function updMute(){document.getElementById('mute').textContent=muted?'♪ OFF':'♪ ON';}
 
 /* ---- particles ---- */
@@ -541,6 +609,13 @@ function flashHype(text,kind,streak){
   bd.appendChild(h);
   setTimeout(function(){h.remove();},1050);
 }
+function boardFlash(kind){
+  const bd=document.getElementById('board');
+  const t=(kind==='jackpot'||kind==='allclear')?3:(kind==='super'?2:1);
+  const f=document.createElement('div');f.className='board-flash t'+t;
+  bd.appendChild(f);void f.offsetWidth;f.classList.add('go');
+  setTimeout(function(){f.remove();},520);
+}
 function hypeImpact(streak){
   const bd=document.getElementById('board');
   const cls=streak>=4?'hype-max':(streak>=2?'hype-hot':'hype-pop');
@@ -591,9 +666,129 @@ function renderPalette(){
 }
 /* ---- endless mode ---- */
 let wallet=0,score=0,depth=0,riseCount=0,combo=0,bigStreak=0,bombs=0,gameOverFlag=false,dangerActive=false,highScore=(ls('tarataradon.endlessHi','0'))|0;
+let heat=0,walletShown=0,walletAnim=null;
+let fever=false,feverEnd=0,feverRAF=null;
+function heatTier(){return heat>=82?3:heat>=46?2:heat>=16?1:0;}
+function renderHeat(){
+  const w=document.getElementById('heat');if(!w)return;
+  const cap=document.getElementById('heatcap');
+  const on=!!(current&&current.endless&&!gameOverFlag);
+  w.style.display=on?'block':'none';
+  if(cap)cap.style.display=on?'block':'none';
+  if(!on){w.className='';return;}
+  if(fever)return;  // FEVER中はfeverTickが残時間バーとして管理
+  w.querySelector('.hf').style.width=Math.max(0,Math.min(100,heat))+'%';
+  const t=heatTier();w.className='';if(t)w.classList.add('t'+t);
+  if(heat>=100)w.classList.add('full');
+  if(cap){  // 何が得かを常時明示：満タンでpt×2のFEVERという誘導
+    const rem=Math.max(0,Math.ceil(100-heat));
+    if(heat>=82){cap.className='near';cap.innerHTML='🔥 まもなく <b>FEVER</b>！ あと'+rem+'% で獲得pt <b>×'+FEVER_MULT+'</b>';}
+    else{cap.className='';cap.innerHTML='🔥 ゲージ満タンで <b>FEVER</b>（獲得pt <b>×'+FEVER_MULT+'</b>）　あと'+rem+'%';}
+  }
+}
+function addHeat(n){
+  if(fever)return;  // FEVER中は蓄積しない
+  heat=Math.max(0,Math.min(100,heat+n));renderHeat();
+  if(heat>=100)enterFever();
+}
+function feverTick(){
+  if(!fever)return;
+  const rem=feverEnd-performance.now(),w=document.getElementById('heat');
+  if(w)w.querySelector('.hf').style.width=Math.max(0,Math.min(100,rem/FEVER_MS*100))+'%';
+  const cap=document.getElementById('heatcap'),sec=Math.max(0,Math.ceil(rem/1000));
+  if(cap&&cap._sec!==sec){cap._sec=sec;cap.className='fever';cap.innerHTML='🔥🔥 <b>FEVER中</b>！ 獲得pt <b>×'+FEVER_MULT+'</b>　残り '+sec+'s';}
+  if(rem<=0){exitFever();return;}
+  feverRAF=requestAnimationFrame(feverTick);
+}
+function enterFever(){
+  if(fever)return;fever=true;feverEnd=performance.now()+FEVER_MS;
+  let fb=document.getElementById('feverBg');
+  if(!fb){fb=document.createElement('div');fb.id='feverBg';document.body.appendChild(fb);}
+  fb.classList.add('show');
+  const fr=document.querySelector('.frame');if(fr)fr.classList.add('fever-on');
+  const w=document.getElementById('heat');if(w)w.className='full fever';
+  showFeverCg(true);
+  flashHype('FEVER!! pt×'+FEVER_MULT,'fever',4);hypeImpact(4);sfxFever();
+  status('🔥🔥 <b>FEVER!!</b> この間スコア'+FEVER_MULT+'倍！ 大消去で延長！');
+  if(feverRAF)cancelAnimationFrame(feverRAF);feverTick();
+}
+function extendFever(ms){if(!fever)return;feverEnd=Math.min(performance.now()+FEVER_MS,feverEnd+ms);}
+function exitFever(){
+  if(!fever)return;feverCleanup();heat=0;renderHeat();
+  flashHype('FEVER END','fever',2);
+}
+function feverCleanup(){
+  fever=false;feverEnd=0;if(feverRAF){cancelAnimationFrame(feverRAF);feverRAF=null;}
+  const cap=document.getElementById('heatcap');if(cap)cap._sec=null;
+  const fr=document.querySelector('.frame');if(fr)fr.classList.remove('fever-on');
+  const fb=document.getElementById('feverBg');if(fb)fb.classList.remove('show');
+  showFeverCg(false);
+}
+function showFeverCg(on){
+  const bd=document.getElementById('board');if(!bd)return;
+  let cg=document.getElementById('feverCg');
+  if(!cg){cg=document.createElement('img');cg.id='feverCg';cg.alt='';cg.src='assets/rewards/scene1/stage1.png';bd.appendChild(cg);}
+  cg.classList.toggle('show',!!on);
+}
+function setMovesDisplay(){
+  const el=document.getElementById('moves');if(!el)return;
+  if(walletShown===wallet){el.textContent='所持 '+wallet;return;}
+  if(walletAnim)cancelAnimationFrame(walletAnim);
+  const from=walletShown,delta=wallet-from,t0=performance.now(),dur=Math.min(620,260+Math.abs(delta)*0.45);
+  if(delta>0){el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');}
+  (function step(now){const k=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-k,3);
+    el.textContent='所持 '+Math.round(from+delta*e);
+    if(k<1)walletAnim=requestAnimationFrame(step);else{walletShown=wallet;el.textContent='所持 '+wallet;}})(performance.now());
+}
+function scorePop(landed,amount,mult){
+  if(!landed||amount<=0)return;
+  const pf=document.querySelector('.playfield'),bd=document.getElementById('board');if(!pf||!bd)return;
+  const t=heatTier(),p=document.createElement('div');p.className='score-pop tier'+t;
+  pf.appendChild(p);
+  const left=bd.offsetLeft+px(landed[1])+CELL/2;
+  let top=bd.offsetTop+px(landed[0])+8;if(top<bd.offsetTop+26)top=bd.offsetTop+26;
+  p.style.left=left+'px';p.style.top=top+'px';
+  const mtxt=(mult>=2?' <span class="mlt">×'+mult.toFixed(1)+'</span>':'');
+  const t0=performance.now(),dur=420;
+  (function step(now){const k=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-k,3);
+    p.innerHTML='+'+Math.round(amount*e).toLocaleString()+mtxt;
+    if(k<1)requestAnimationFrame(step);})(performance.now());
+  void p.offsetWidth;p.classList.add('go');
+  setTimeout(function(){p.remove();},1050);
+}
 // エンドレス調整値（バランスはここを変えるだけ）
-const E_COST=100, E_REWARD=30;
-function comboMult(n){return Math.min(1+0.5*(Math.max(1,n)-1),4);}  // 連続消し倍率: 1,1.5,2,…上限4
+/* ===== バランス調整：射倖心/FEVER系の調整値はここに集約 =====
+   プリセットを ?bal=standard|frenzy|steady（またはlocalStorage）で切替して数パターン比較できる。
+   - heatBase/PerCell/Big/Super/Jackpot: 1消去あたりのheat上昇（大消去ティアで加算）＝FEVER到達の速さ
+   - heatWhiff: 空振り/不発のheat減（射倖心＝チェインを切らせない厳しさ）
+   - feverMs/feverExt: FEVER持続/大消去ごとの延長(ms)
+   - feverMult: FEVER中のpt倍率
+   - cost/reward: 1投コスト/1消去報酬, comboStep/comboCap: コンボ倍率の刻みと上限 */
+const BAL_PRESETS={
+  // standard=推奨。大消去〜3手 or JACKPOT2回でFEVER、8秒×2倍。
+  standard:{ heatBase:8,  heatPerCell:2, heatBig:10, heatSuper:16, heatJackpot:22, heatWhiff:-34,
+             feverMs:8000, feverExt:1500, feverMult:2, cost:100, reward:30, comboStep:0.5, comboCap:4 },
+  // frenzy=射倖心マシマシ。FEVER早く頻繁・×3、基本は短いが大消去で大きく延長＝維持を煽る。空振りは寛容。
+  frenzy:{   heatBase:10, heatPerCell:3, heatBig:14, heatSuper:20, heatJackpot:28, heatWhiff:-24,
+             feverMs:6000, feverExt:2400, feverMult:3, cost:100, reward:30, comboStep:0.5, comboCap:5 },
+  // steady=辛口/熟練寄り。FEVER遠め・長め×2、空振り重い。スコア勝負向き。
+  steady:{   heatBase:6,  heatPerCell:2, heatBig:8,  heatSuper:12, heatJackpot:18, heatWhiff:-40,
+             feverMs:9000, feverExt:1200, feverMult:2, cost:100, reward:30, comboStep:0.5, comboCap:4 }
+};
+function pickBalName(){
+  try{
+    const u=new URLSearchParams(location.search).get('bal');
+    if(u&&BAL_PRESETS[u]){localStorage.setItem('tarataradon.bal',u);return u;}
+    const s=localStorage.getItem('tarataradon.bal');
+    if(s&&BAL_PRESETS[s])return s;
+  }catch(e){}
+  return 'standard';
+}
+const BAL_NAME=pickBalName(), BAL=BAL_PRESETS[BAL_NAME];
+try{console.log('[tarataradon] balance preset =',BAL_NAME,'（?bal=standard|frenzy|steady で切替・localStorageに保存）');}catch(e){}
+const E_COST=BAL.cost, E_REWARD=BAL.reward;
+const FEVER_MS=BAL.feverMs, FEVER_EXT=BAL.feverExt, FEVER_MULT=BAL.feverMult;
+function comboMult(n){return Math.min(1+BAL.comboStep*(Math.max(1,n)-1),BAL.comboCap);}
 function endlessColors(){return depth>=11?['R','G','B','Y']:['R','G','B'];}  // Yは11段目以降
 function riseInterval(){if(depth>=30)return 1;if(depth>=20)return 2;if(depth>=10)return 3;return 4;}  // 終盤ほど競り上がりが速い
 function blackChance(d){return d>=30?0.22:(d>=20?0.12:0);}  // 終盤は黒も増える
@@ -691,16 +886,21 @@ function renderCombo(pop){
     el.textContent='🔥'+combo+' ×'+comboMult(combo).toFixed(1);el.style.display='';
     if(pop){el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');}
   }else el.style.display='none';
+  const tb=document.querySelector('#play .topbar');
+  if(tb)tb.classList.toggle('combo-live',!!(current&&current.endless&&combo>=2));
 }
 function updEndlessHUD(){
   document.getElementById('lvTitle').textContent='エンドレス';
   document.getElementById('lvPar').textContent='スコア '+score+' ／ '+depth+'段 ／ 最高 '+highScore;
-  document.getElementById('moves').textContent='所持 '+wallet;
+  setMovesDisplay();
+  renderHeat();
   renderCombo(false);
 }
 function startEndless(){
   current={endless:true};curCat=null;curIdx=-1;guide=null;
-  wallet=500;score=0;depth=0;riseCount=0;combo=0;bigStreak=0;bombs=0;gameOverFlag=false;dangerActive=false;
+  feverCleanup();
+  if(walletAnim){cancelAnimationFrame(walletAnim);walletAnim=null;}
+  wallet=500;score=0;depth=0;riseCount=0;combo=0;bigStreak=0;bombs=0;gameOverFlag=false;dangerActive=false;heat=0;walletShown=500;
   inv={R:0,G:0,B:0,Y:0};sel=null;playing=false;anim=false;animToken++;undoStack=[];used=0;
   grid=Array.from({length:ROWS},function(){return new Array(COLS).fill(null);});
   for(let r=ROWS-1;r>=ROWS-3;r--)for(let c=0;c<COLS;c++)grid[r][c]=['R','G','B'][Math.floor(Math.random()*3)];
@@ -712,6 +912,7 @@ function startEndless(){
   document.getElementById('lvHint').style.display='none';
   document.getElementById('endPopup').style.display='none';
   buildChrome();renderBlocksInstant();pickSel();renderPalette();updEndlessHUD();renderBomb();
+  (function(){var hl=document.querySelector('#heat .hlabel');if(hl)hl.textContent='FEVER ×'+FEVER_MULT+'pt';})();
   updateDanger(false);
   hideClear();status('色を選んで列に投げよう。1投 −'+E_COST+'pt、続けて消すほどコンボ倍率UP🔥 終盤は競り上がりが加速。');show('play');
 }
@@ -742,12 +943,12 @@ function endlessResolve(gained,emptiedCol){
   if(wallet<E_COST)gameOverEndless('ポイント切れ');
 }
 function gameOverEndless(reason){
-  if(gameOverFlag)return;gameOverFlag=true;anim=false;combo=0;bigStreak=0;dangerActive=false;document.getElementById('board').classList.remove('danger','hype-pop','hype-hot','hype-max');renderCombo(false);renderBomb();
+  if(gameOverFlag)return;gameOverFlag=true;anim=false;combo=0;bigStreak=0;heat=0;feverCleanup();dangerActive=false;document.getElementById('board').classList.remove('danger','hype-pop','hype-hot','hype-max');renderCombo(false);renderBomb();renderHeat();
   if(score>highScore){highScore=score;saveHS();}
   document.getElementById('endStat').innerHTML='スコア <b>'+score+'</b> ／ '+depth+'段 到達<br>最高スコア '+highScore+'<br><span style="color:var(--hint)">'+reason+'</span>';
   document.getElementById('endPopup').style.display='flex';
 }
-function backToTitle(){playing=false;anim=false;animToken++;guide=null;current=null;bigStreak=0;bombs=0;dangerActive=false;document.getElementById('board').classList.remove('danger','hype-pop','hype-hot','hype-max');renderBomb();show('title');}
+function backToTitle(){playing=false;anim=false;animToken++;guide=null;current=null;bigStreak=0;bombs=0;heat=0;feverCleanup();dangerActive=false;document.getElementById('board').classList.remove('danger','hype-pop','hype-hot','hype-max');renderBomb();renderHeat();show('title');}
 
 function throwAt(c){
   if(anim&&!playing||gameOverFlag)return;
@@ -758,7 +959,7 @@ function throwAt(c){
   else if(inv[sel]<=0){status('使える薬を選んでね。');return;}
   const res=E.applyThrow(grid,c,sel);
   if(res.outcome==='invalid'||res.outcome==='fizzle'){dropFx(res.landed,sel);sfxDrop();
-    if(endless){wallet-=E_COST;combo=0;bigStreak=0;status('から投げ…つながらず −'+E_COST+'pt。コンボ途切れ。');pickSel();renderPalette();updHUD();renderBomb();endlessResolve(0,false);}
+    if(endless){wallet-=E_COST;combo=0;bigStreak=0;addHeat(BAL.heatWhiff);status('から投げ…つながらず −'+E_COST+'pt。コンボ途切れ。');pickSel();renderPalette();updHUD();renderBomb();endlessResolve(0,false);}
     else status('薬は素通りした（着地点の隣に同じ色が無い）。');
     return;}
   if(endless)wallet-=E_COST;
@@ -771,7 +972,7 @@ function throwAt(c){
     const p=res.blackenedCell,id=idGrid[p[0]][p[1]];
     if(id!=null){setLook(els[id],'K');els[id].classList.add('pulse');setTimeout((function(e){return function(){e.classList.remove('pulse');};})(els[id]),300);}
     sfxBlack();
-    if(endless){combo=0;bigStreak=0;status('不発：'+NAMES[usedColor]+'がつながらず黒化。−'+E_COST+'pt・コンボ途切れ。');pickSel();renderPalette();updHUD();renderBomb();endlessResolve(0,false);}
+    if(endless){combo=0;bigStreak=0;addHeat(BAL.heatWhiff);status('不発：'+NAMES[usedColor]+'がつながらず黒化。−'+E_COST+'pt・コンボ途切れ。');pickSel();renderPalette();updHUD();renderBomb();endlessResolve(0,false);}
     else{
       status('不発：'+NAMES[usedColor]+'薬がつながらず '+NAMES[res.blackened]+'を黒化。');
       pickSel();renderPalette();
@@ -786,11 +987,14 @@ function throwAt(c){
   const hype=endless?clearHype(totalCleared,allColorCleared):null;
   let gained=0;
   if(endless){
-    combo++;const mult=comboMult(combo);gained=Math.round(E_REWARD*totalCleared*mult);
+    const inFever=fever;  // この一手が実際に2倍対象か（発動した手自体は倍化前なのでタグと一致させる）
+    combo++;const mult=comboMult(combo);gained=Math.round(E_REWARD*totalCleared*mult*(inFever?FEVER_MULT:1));
+    addHeat(BAL.heatBase+totalCleared*BAL.heatPerCell+(hype?(hype.kind==='jackpot'||hype.kind==='allclear'?BAL.heatJackpot:hype.kind==='super'?BAL.heatSuper:BAL.heatBig):0));
+    if(fever)extendFever(hype?FEVER_EXT:600);
     if(hype)bigStreak++;else bigStreak=0;
     if(bigStreak===3)awardBomb();
     const htxt=hypeText(hype,bigStreak);
-    status(NAMES[usedColor]+'を'+res.cleared+'個消去'+(res.blacks?'＋黒'+res.blacks+'個掃き出し':'')+'！ +'+gained+'pt'+(combo>=2?'　🔥COMBO×'+mult.toFixed(1):'')+(hype?'　'+(allColorCleared?(bigStreak>=2?bigStreak+'連続 ':'')+NAMES[usedColor]+'全消し！！':htxt):''));
+    status(NAMES[usedColor]+'を'+res.cleared+'個消去'+(res.blacks?'＋黒'+res.blacks+'個掃き出し':'')+'！ +'+gained+'pt'+(combo>=2?'　🔥COMBO×'+mult.toFixed(1):'')+(inFever?'　🔥FEVER×'+FEVER_MULT:'')+(hype?'　'+(allColorCleared?(bigStreak>=2?bigStreak+'連続 ':'')+NAMES[usedColor]+'全消し！！':htxt):''));
     renderCombo(true);
   }else{
     status(NAMES[usedColor]+'を'+res.cleared+'個消去'+(res.blacks?'＋黒'+res.blacks+'個を掃き出し':'')+'。（使用 '+used+'本）');
@@ -814,27 +1018,46 @@ function throwAt(c){
   renderBomb();
   setTimeout(function(){
     if(tk!==animToken)return;
-    splash(res.landed,COLORS[usedColor]);sfxHit(res.cleared);
-    if(hype){flashHype(hypeText(hype,bigStreak),hype.kind,bigStreak);hypeImpact(bigStreak);sfxJackpot(bigStreak);}
     // 連結グループを種から1マスずつ薄く（lit）→全部薄くなったら一斉に消す
     const order=chainOrder(res.landed,res.clearedCells);
     const n=Math.max(1,order.length), step=Math.max(38,Math.min(80,Math.floor(440/n)));
-    order.forEach(function(p,i){setTimeout(function(){if(tk!==animToken)return;const id=idGrid[p[0]][p[1]];if(id!=null)els[id].classList.add('lit');},i*step);});
-    setTimeout(function(){
+    const tier=hype?((hype.kind==='jackpot'||hype.kind==='allclear')?3:(hype.kind==='super'?2:1)):0;
+    // 放出（ズドン）：閃光＋煽り＋SE＋連結消去
+    const release=function(){
       if(tk!==animToken)return;
-      doClear();
+      splash(res.landed,COLORS[usedColor]);sfxHit(res.cleared);
+      if(hype){boardFlash(hype.kind);flashHype(hypeText(hype,bigStreak),hype.kind,bigStreak);hypeImpact(bigStreak);sfxJackpot(bigStreak);}
+      if(endless&&gained>0)scorePop(res.landed,gained,comboMult(combo));
+      order.forEach(function(p,i){setTimeout(function(){if(tk!==animToken)return;const id=idGrid[p[0]][p[1]];if(id!=null)els[id].classList.add('lit');},i*step);});
       setTimeout(function(){
         if(tk!==animToken)return;
-        for(const id of rm){if(els[id]){els[id].remove();delete els[id];}}
-        anim=false;pickSel();renderPalette();renderBomb();
-        if(endless){endlessResolve(gained, emptiedAny(grid));}
-        else{
-          if(E.isEmpty(grid))onWin();
-          else if(invEmpty())status('薬切れ。盤面が残った＝この在庫では全消し失敗。「戻す」で巻き戻せます。');
-          if(guide)guideNext();
-        }
-      },380);
-    },n*step+150);
+        doClear();
+        setTimeout(function(){
+          if(tk!==animToken)return;
+          for(const id of rm){if(els[id]){els[id].remove();delete els[id];}}
+          anim=false;pickSel();renderPalette();renderBomb();
+          if(endless){endlessResolve(gained, emptiedAny(grid));}
+          else{
+            if(E.isEmpty(grid))onWin();
+            else if(invEmpty())status('薬切れ。盤面が残った＝この在庫では全消し失敗。「戻す」で巻き戻せます。');
+            if(guide)guideNext();
+          }
+        },380);
+      },n*step+150);
+    };
+    // 大消去（hype）は溜め→放出、それ以外は即放出
+    if(endless&&tier){
+      const bd=document.getElementById('board');bd.classList.add('charging');
+      const cleanCharge=function(){res.clearedCells.forEach(function(p){const id=idGrid[p[0]][p[1]];if(id!=null&&els[id])els[id].classList.remove('charge');});};
+      res.clearedCells.forEach(function(p){const id=idGrid[p[0]][p[1]];if(id!=null)els[id].classList.add('charge');});
+      const windDur=tier>=3?640:(tier===2?460:300);
+      sfxCharge(windDur/1000,tier);
+      setTimeout(function(){
+        bd.classList.remove('charging');cleanCharge();
+        if(tk!==animToken)return;
+        release();
+      },windDur);
+    }else release();
   },190);
 }
 function onWin(){

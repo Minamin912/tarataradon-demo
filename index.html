@@ -214,6 +214,22 @@ button:active{transform:scale(.95)}
 .popup-stat{color:var(--muted);font-weight:700;font-size:13px;margin-bottom:18px}
 .popup-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .popup-actions button{font-size:14px}
+/* オンラインランキング */
+.rank-sub{font-size:12px;color:var(--hint);text-align:center;margin:6px 0 10px}
+.ranklist{display:flex;flex-direction:column;gap:6px}
+.rank-row{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:8px 12px;box-shadow:var(--shadow-sm);font-weight:700}
+.rank-row .rk{width:30px;text-align:center;font-weight:800;color:var(--pinkd)}
+.rank-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.rank-row .sc{font-weight:800;color:var(--pinkd)}
+.rank-row .dp{font-size:11px;color:var(--hint);margin-left:4px;font-weight:700}
+.rank-row.me{outline:3px solid var(--pink);background:#fff0f5}
+.rank-row.top1{background:linear-gradient(180deg,#fffbe9,#fff3c9)}.rank-row.top1 .rk{color:#e8a800}
+.rank-row.top2 .rk{color:#9aa4ad}.rank-row.top3 .rk{color:#c08457}
+.rank-empty{color:var(--hint);text-align:center;padding:26px 10px;line-height:1.7}
+#endRank{margin:4px 0 2px}
+#endRank input{font-family:inherit;font-weight:700;font-size:14px;padding:8px 11px;border:2px solid #ffd5e2;border-radius:12px;width:58%;text-align:center;box-sizing:border-box}
+#endRank .rk-row{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
+#endRank .rk-note{font-size:11px;color:var(--hint);margin-top:7px;line-height:1.5}
 .combo-chip{background:linear-gradient(135deg,#ff8a5c,#ff3d77);color:#fff;box-shadow:0 2px 8px rgba(255,61,119,.45)}
 .combo-chip.pop{animation:combopop .42s cubic-bezier(.2,1.3,.5,1)}
 @keyframes combopop{0%{transform:scale(.55)}55%{transform:scale(1.25)}100%{transform:scale(1)}}
@@ -240,6 +256,7 @@ button:active{transform:scale(.95)}
     <button id="startBtn" class="btn-primary btn-lg">▶ はじめる</button>
     <button id="titleEndless" class="btn-ghost">エンドレス</button>
     <button id="titleGallery" class="btn-ghost">ギャラリー</button>
+    <button id="titleRanking" class="btn-ghost">🏆 ランキング</button>
     <div class="title-foot">色薬を落として、同じ色をけして全消し！</div>
   </div>
 
@@ -287,6 +304,12 @@ button:active{transform:scale(.95)}
     <div id="galGrid" class="galgrid"></div>
   </div>
 
+  <div id="ranking" class="screen" style="display:none">
+    <div class="topbar"><button id="rankBack" class="icon-btn">←</button><div class="ttl">🏆 ランキング</div><button id="rankReload" class="icon-btn">⟳</button></div>
+    <div class="rank-sub">エンドレス ハイスコア TOP50（standard）</div>
+    <div id="rankList" class="ranklist"></div>
+  </div>
+
   <div id="reward" class="screen" style="display:none">
     <div class="topbar"><button id="rwBack" class="icon-btn">←</button><div class="ttl" id="rwTitle"></div><div style="width:42px"></div></div>
     <div id="rewardView"></div>
@@ -310,6 +333,7 @@ button:active{transform:scale(.95)}
     <div class="popup-card">
       <div class="popup-title">ゲームオーバー</div>
       <div class="popup-stat" id="endStat"></div>
+      <div id="endRank"></div>
       <div class="popup-actions">
         <button id="endTitle">タイトルへ</button>
         <button id="endRetry" class="btn-primary">もう一度</button>
@@ -322,6 +346,7 @@ button:active{transform:scale(.95)}
 <script src="solver.js"></script>
 <script src="levels.js"></script>
 <script src="rewards.js"></script>
+<script src="ranking.js"></script>
 <script>
 (function(){
 const E=window.PuzzleEngine, S=window.PuzzleSolver, L=window.LEVELS, RW=window.REWARDS;
@@ -423,7 +448,7 @@ function burst(r,c,color){
   }
 }
 
-function show(v){['title','select','play','gallery','reward'].forEach(function(id){document.getElementById(id).style.display=(id===v)?'':'none';});}
+function show(v){['title','select','play','gallery','reward','ranking'].forEach(function(id){document.getElementById(id).style.display=(id===v)?'':'none';});}
 
 /* ---- reward unlocking ---- */
 function clearedCount(){return Object.keys(cleared).length;}
@@ -946,7 +971,58 @@ function gameOverEndless(reason){
   if(gameOverFlag)return;gameOverFlag=true;anim=false;combo=0;bigStreak=0;heat=0;feverCleanup();dangerActive=false;document.getElementById('board').classList.remove('danger','hype-pop','hype-hot','hype-max');renderCombo(false);renderBomb();renderHeat();
   if(score>highScore){highScore=score;saveHS();}
   document.getElementById('endStat').innerHTML='スコア <b>'+score+'</b> ／ '+depth+'段 到達<br>最高スコア '+highScore+'<br><span style="color:var(--hint)">'+reason+'</span>';
+  lastRunScore=score;lastRunDepth=depth;rkSubmitted=false;
+  renderEndRank();
   document.getElementById('endPopup').style.display='flex';
+}
+/* ---- オンラインランキング UI ---- */
+let lastRunScore=0,lastRunDepth=0,rkSubmitted=false;
+function rkEsc(s){return (''+s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function rkNum(n){return (n||0).toLocaleString();}
+function renderEndRank(){
+  const box=document.getElementById('endRank');if(!box)return;
+  if(!(window.Ranking&&window.Ranking.configured)){box.innerHTML='<div class="rk-note">🏆 オンラインランキングは未設定（docs/ranking-setup.md で有効化）</div>';return;}
+  if(BAL_NAME!=='standard'){box.innerHTML='<div class="rk-note">🏆 ランキング対象は standard プリセットのみ（現在: '+rkEsc(BAL_NAME)+'）</div>';return;}
+  let nm='';try{nm=localStorage.getItem('tarataradon.playerName')||'';}catch(e){}
+  box.innerHTML='<div class="rk-row"><input id="rkName" maxlength="16" placeholder="名前（16文字まで）" value="'+rkEsc(nm)+'">'
+    +'<button id="rkSend" class="btn-primary">🏆 送信</button></div>'
+    +'<div class="rk-note" id="rkMsg">ハイスコアをランキングに登録しよう！</div>';
+  document.getElementById('rkSend').onclick=submitEndScore;
+}
+function submitEndScore(){
+  const inp=document.getElementById('rkName'),btn=document.getElementById('rkSend'),msg=document.getElementById('rkMsg');
+  if(!inp||rkSubmitted)return;
+  const name=(inp.value||'').trim()||'ゲスト';
+  const last=+ls('tarataradon.rkLast','0'),now=Date.now();
+  if(now-last<3000){msg.textContent='送信が早すぎます。少し待ってね。';return;}
+  try{localStorage.setItem('tarataradon.playerName',name);}catch(e){}
+  btn.disabled=true;inp.disabled=true;msg.textContent='送信中…';
+  window.Ranking.submit({name:name,score:lastRunScore,depth:lastRunDepth,bal:BAL_NAME}).then(function(){
+    rkSubmitted=true;try{localStorage.setItem('tarataradon.rkLast',''+Date.now());}catch(e){}
+    msg.innerHTML='送信完了！ <b>ランキングを表示します…</b>';
+    setTimeout(function(){openRanking(name+'|'+lastRunScore+'|'+lastRunDepth);},600);
+  }).catch(function(e){btn.disabled=false;inp.disabled=false;msg.textContent='送信失敗：'+e.message;});
+}
+function renderRankRows(container,rows,meKey){
+  container.innerHTML='';
+  if(!rows||!rows.length){container.innerHTML='<div class="rank-empty">まだ記録がありません。<br>一番乗りを狙おう！</div>';return;}
+  rows.forEach(function(r,i){
+    const me=meKey&&((r.name+'|'+r.score+'|'+r.depth)===meKey);
+    const d=document.createElement('div');
+    d.className='rank-row'+(i<3?' top'+(i+1):'')+(me?' me':'');
+    d.innerHTML='<div class="rk">'+(i+1)+'</div><div class="nm">'+rkEsc(r.name)+'</div>'
+      +'<div class="sc">'+rkNum(r.score)+'</div><div class="dp">'+(r.depth|0)+'段</div>';
+    container.appendChild(d);
+  });
+}
+function openRanking(meKey){
+  show('ranking');
+  const list=document.getElementById('rankList');
+  if(!(window.Ranking&&window.Ranking.configured)){
+    list.innerHTML='<div class="rank-empty">オンラインランキングは未設定です。<br>docs/ranking-setup.md を参照してください。</div>';return;}
+  list.innerHTML='<div class="rank-empty">読み込み中…</div>';
+  window.Ranking.top('standard',50).then(function(rows){renderRankRows(list,rows,meKey);})
+    .catch(function(e){list.innerHTML='<div class="rank-empty">読み込みに失敗しました。<br>'+rkEsc(e.message)+'</div>';});
 }
 function backToTitle(){playing=false;anim=false;animToken++;guide=null;current=null;bigStreak=0;bombs=0;heat=0;feverCleanup();dangerActive=false;document.getElementById('board').classList.remove('danger','hype-pop','hype-hot','hype-max');renderBomb();renderHeat();show('title');}
 
@@ -1104,6 +1180,9 @@ document.getElementById('titleArt').innerHTML=['R','G','B','Y'].map(function(k){
 document.getElementById('board').addEventListener('click',boardClick);
 document.getElementById('startBtn').onclick=function(){renderSelect();show('select');};
 document.getElementById('titleGallery').onclick=function(){renderGallery();show('gallery');};
+document.getElementById('titleRanking').onclick=function(){openRanking();};
+document.getElementById('rankBack').onclick=function(){show('title');};
+document.getElementById('rankReload').onclick=function(){openRanking();};
 document.getElementById('undo').onclick=undo;
 document.getElementById('reset').onclick=function(){if(current&&current.endless)startEndless();else reset();};
 document.getElementById('solve').onclick=solveNow;
